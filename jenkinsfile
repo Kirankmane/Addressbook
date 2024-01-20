@@ -1,0 +1,47 @@
+pipeline {
+    agent any
+
+    environment {
+        mvnHome = tool 'LOCAL_MAVEN'
+        version = '3.3.9'
+    }
+
+    stages {
+        stage('Preparation') {
+            steps {
+                git 'https://github.com/sachingupta771/addressbook.git'
+            }
+        }
+
+        stage('Build') {
+            steps {
+                script {
+                    withMaven(
+                        maven: 'LOCAL_MAVEN',
+                        mavenSettingsConfig: 'settings.xml',
+                        mavenLocalRepo: '/opt/maven'
+                    ) {
+                        if (isUnix()) {
+                            sh "'${mvnHome}/bin/mvn' clean test"
+                        } else {
+                            bat(/"${mvnHome}\bin\mvn" -Dmaven.test.failure.ignore clean test/)
+                        }
+                    }
+                }
+            }
+        }
+
+        stage('PublishResults') {
+            steps {
+                junit '**/target/surefire-reports/TEST-*.xml'
+                archive 'target/*.jar'
+            }
+        }
+
+        stage('notify') {
+            steps {
+                // Add notification steps here if needed
+            }
+        }
+    }
+}
